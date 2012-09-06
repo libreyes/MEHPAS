@@ -67,6 +67,7 @@ class PasService {
 	 * @param Gp $gp
 	 */
 	public function updateGpFromPas($gp, $assignment) {
+		Yii::log('   /// UPDATE: updateGpFromPas: '.$gp->id,'trace');
 		if (!$this->available) return;
 
 		try {
@@ -152,6 +153,7 @@ class PasService {
 	 * @param PasPatientAssignment $assignment
 	 */
 	public function updatePatientFromPas($patient, $assignment) {
+		Yii::log('   /// UPDATE: updatePatientFromPas: '.$patient->id,'trace');
 		if (!$this->available) return;
 
 		try {

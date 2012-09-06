@@ -6,7 +6,7 @@ class PasObserver {
 	 * @param array $params
 	 */
 	public function updatePatientFromPas($params) {	
-		Yii::log('EVENT: updatePatientFromPas: '.$params['patient'],'trace');
+		Yii::log('   /// EVENT: updatePatientFromPas: '.$params['patient']->id,'trace');
 		$patient = $params['patient'];
 		if(!$patient->use_pas){
 			return;
@@ -38,7 +38,7 @@ class PasObserver {
 	 * @param array $params
 	 */
 	public function updateGpFromPas($params) {
-		Yii::log('EVENT: updateGpFromPas: '.$params['gp'],'trace');
+		Yii::log('   /// EVENT: updateGpFromPas: '.$params['gp']->id,'trace');
 		$pas_service = new PasService();
 		if ($pas_service->available) {
 			$gp = $params['gp'];
@@ -75,7 +75,7 @@ class PasObserver {
 	 * @param array $params
 	 */
 	public function searchPas($params) {
-		Yii::log('EVENT: searchPas','trace');
+		Yii::log('   /// EVENT: searchPas','trace');
 		$pas_service = new PasService();
 		if($pas_service->available) {
 			$data = $params['params'];
