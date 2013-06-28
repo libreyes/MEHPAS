@@ -27,7 +27,7 @@ class PasService {
 	public function isAvailable() {
 		if(!isset($this->available)) {
 			$this->available = false;
-			if(isset(Yii::app()->params['mehpas_enabled']) && Yii::app()->params['mehpas_enabled'] === true) {
+			if(isset(Config::has('mehpas_enabled')) && Config::get('mehpas_enabled') === true) {
 				try {
 					Yii::log('Checking PAS is available','trace');
 					$connection = Yii::app()->db_pas;
@@ -56,7 +56,7 @@ class PasService {
 	 * @return boolean
 	 */
 	protected function isBadGp($gp_id) {
-		return (in_array($gp_id, Yii::app()->params['mehpas_bad_gps']));
+		return Config::has('mehpas_bad_gps') && in_array($gp_id, Config::get('mehpas_bad_gps'));
 	}
 
 	/**
@@ -750,7 +750,7 @@ class PasService {
 			$this->updatePatientFromPas($patient, $assignment);
 			//Yii::log('Updated from PAS','trace');
 
-			if (Yii::app()->params['mehpas_legacy_letters']) {
+			if (Config::get('mehpas_legacy_letters')) {
 				Yii::import('application.modules.OphLeEpatientletter.models.*');
 				$this->associateLegacyEvents($patient);
 			}

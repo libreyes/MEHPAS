@@ -58,7 +58,7 @@ class MergedPatientsCommand extends CConsoleCommand {
 
 		$message = Yii::app()->mailer->newMessage();
 		$message->setFrom(array("devteam@openeyes.org.uk" => "Dev team"));
-		$message->setTo(array(Yii::app()->params['helpdesk_email']));
+		$message->setTo(array(Config::get('helpdesk_email')));
 		$message->setSubject("New merged patients detected");
 		$message->setBody("New merged patients were detected, please see: http://openeyes.moorfields.nhs.uk/mehpas/admin/mergedPatients");
 		Yii::app()->mailer->sendMessage($message);
