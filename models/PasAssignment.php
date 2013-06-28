@@ -191,7 +191,7 @@ class PasAssignment extends BaseActiveRecord {
 			
 		if($modified) {
 			// Found assignment
-			$cache_time = Config::has('mehpas_cache_time']) ? Config::get('mehpas_cache_time') : self::PAS_CACHE_TIME;
+			$cache_time = Config::has('mehpas_cache_time') ? Config::get('mehpas_cache_time') : self::PAS_CACHE_TIME;
 			$stale = false;
 
 			// Check to see if assignment is stale
