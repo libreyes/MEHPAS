@@ -24,6 +24,8 @@ class PasObserver {
 	 * @param array $params
 	 */
 	public function updatePatientFromPas($params) {
+		if (!Config::has('mehpas_enabled') || !Config::get('mehpas_enabled')) return;
+
 		// Check to see if patient is in "offline" mode
 		$patient = $params['patient'];
 		if(!$patient->use_pas){
@@ -72,6 +74,8 @@ class PasObserver {
 	 * @param array $params
 	 */
 	public function updateGpFromPas($params) {
+		if (!Config::has('mehpas_enabled') || !Config::get('mehpas_enabled')) return;
+
 		$gp = $params['gp'];
 
 		// Check to see if we are buffering updates
@@ -116,6 +120,8 @@ class PasObserver {
 	 * @param array $params
 	 */
 	public function updatePracticeFromPas($params) {
+		if (!Config::has('mehpas_enabled') || !Config::get('mehpas_enabled')) return;
+
 		$practice = $params['practice'];
 
 		// Check to see if we are buffering updates
