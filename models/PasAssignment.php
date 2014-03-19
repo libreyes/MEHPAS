@@ -176,7 +176,7 @@ class PasAssignment extends BaseActiveRecordVersioned
 		$connection = $this->getDbConnection();
 
 		// Find transaction and get a lock on it
-		$transaction = $connection->beginTransaction();
+		$transaction = $connection->beginTransaction('Lock','Patient');
 		$command = $connection->createCommand()
 		->select('id,internal_type,last_modified_date')
 		->from($this->tableName())
@@ -198,7 +198,7 @@ class PasAssignment extends BaseActiveRecordVersioned
 			$transaction->commit();
 			sleep(1);
 			//Yii::log("Reobtaining row lock", 'trace');
-			$transaction = $connection->beginTransaction();
+			$transaction = $connection->beginTransaction('Lock','Patient');
 			$record = $command->queryRow();
 			//Yii::log("Got row lock", 'trace');
 			$id = $record['id'];
