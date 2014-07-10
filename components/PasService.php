@@ -91,13 +91,20 @@ class PasService
 				}
 				if ($pas_gp = $assignment->external) {
 					Yii::log('Found GP in PAS', 'trace');
+
+					$old_gp = clone $gp;
+
 					$gp->nat_id = $pas_gp->NAT_ID;
 					$gp->obj_prof = $pas_gp->OBJ_PROF;
 
-					// Contact
-					if (!$contact = $gp->contact) {
-						$contact = new Contact();
+					if ($gp != $old_gp && !$gp->save()) {
+						throw new CException('Cannot save gp: '.print_r($gp->getErrors(),true));
 					}
+
+					$contact = $gp->contact;
+
+					$old_contact = clone $contact;
+
 					$contact->first_name = PasTransformer::fixCase(trim($pas_gp->FN1 . ' ' . $pas_gp->FN2));
 					$contact->last_name = PasTransformer::fixCase($pas_gp->SN);
 					$contact->title = PasTransformer::fixCase($pas_gp->TITLE);
@@ -105,6 +112,10 @@ class PasService
 						$contact->primary_phone = trim($pas_gp->TEL_1);
 					} else {
 						$contact->primary_phone = 'Unknown';
+					}
+
+					if ($contact != $old_contact && !$contact->save()) {
+						throw new CException('Cannot save gp contact: '.print_r($contact->getErrors(),true));
 					}
 
 					// Address
@@ -124,44 +135,30 @@ class PasService
 					$address2 = PasTransformer::fixCase($pas_gp->ADD_DIS);
 					$city = PasTransformer::fixCase($pas_gp->ADD_TWN);
 					$postcode = strtoupper($pas_gp->PC);
+
 					if (trim(implode('',array($address1, $address2, $city, $postcode)))) {
 						if (!$address = $contact->address) {
 							$address = new Address();
+							$address->contact_id = $contact->id;
 						}
+
+						$old_address = clone $address;
+
 						$address->address1 = $address1;
 						$address->address2 = $address2;
 						$address->city = $city;
 						$address->county = PasTransformer::fixCase($pas_gp->ADD_CTY);
 						$address->postcode = $postcode;
 						$address->country_id = 1;
+
+						if ($address != $old_address && !$address->save()) {
+							throw new CException('Cannot save gp contact address: '.print_r($address->getErrors(),true));
+						}
 					} else {
 						// Address doesn't look useful, so we'll delete it
 						if ($address = $contact->address) {
 							$address->delete();
-							$address = null;
 						}
-					}
-
-					// Save
-					if (!$gp->save()) {
-						throw new CException('Cannot save gp: '.print_r($gp->getErrors(),true));
-					}
-
-					if (!$contact->save()) {
-						throw new CException('Cannot save gp contact: '.print_r($contact->getErrors(),true));
-					}
-
-					$gp->contact_id = $contact->id;
-					if (!$gp->save()) {
-						throw new Exception("Unable to save gp: ".print_r($gp->getErrors(),true));
-					}
-
-					if ($address) {
-						$address->contact_id = $contact->id;
-						if (!$address->save()) {
-							throw new CException('Cannot save gp contact address: '.print_r($address->getErrors(),true));
-						}
-					} else {
 						Yii::log("GP has no address|id: {$gp->id}, obj_prof: {$gp->obj_prof}", 'warning', 'application.action');
 					}
 
@@ -229,16 +226,16 @@ class PasService
 			$commissioning_body->commissioning_body_type_id = $ccg_type->id;
 			$commissioning_body->code = $code;
 		}
+
+		$old_commissioning_body = clone $commissioning_body;
+
 		$commissioning_body->name = $pas_ccg->OBJ_DESC;
 
-		// Contact
-		if (!$contact = $commissioning_body->contact) {
-			$contact = new Contact;
+		if ($commissioning_body != $old_commissioning_body && !$commissioning_body->save()) {
+			throw new CException('Cannot save CommissioningBody: '.print_r($commissioning_body->getErrors(),true));
 		}
-		if (!$contact->save()) {
-			throw new CException("Unable to save CommissioningBody contact: ".print_r($contact->getErrors(),true));
-		}
-		$commissioning_body->contact_id = $contact->id;
+
+		$contact = $commissioning_body->contact;
 
 		// Address
 		$address1 = array();
@@ -255,31 +252,28 @@ class PasService
 				$address = new Address();
 				$address->contact_id = $contact->id;
 			}
+
+			$old_address = clone $address;
+
 			$address->address1 = $address1;
 			$address->address2 = $address2;
 			$address->city = $city;
 			$address->county = PasTransformer::fixCase($pas_ccg->ADD_CTY);
 			$address->postcode = $postcode;
 			$address->country_id = 1;
-			if (!$address->save()) {
+			if ($address != $old_address && !$address->save()) {
 				throw new CException('Cannot save CommissioningBody address: '.print_r($address->getErrors(),true));
 			}
 		} else {
 			// Address doesn't look useful, so we'll delete it
 			if ($address = $contact->address) {
 				$address->delete();
-				$address = null;
 			}
 			Yii::log("CommissioningBody has no address|id: {$commissioning_body->id}, code: {$commissioning_body->code}", 'warning', 'application.action');
 		}
 
-		// Save
-		if (!$commissioning_body->save()) {
-			throw new CException('Cannot save CommissioningBody: '.print_r($commissioning_body->getErrors(),true));
-		}
-
 		// Associate service with the new commissioning body, if there is one
-		if ($cbs = CommissioningBodyService::model()->find('code=?',array($commissioning_body->code))) {
+		if ($cbs = CommissioningBodyService::model()->find('code=? and commissioning_body_id is null',array($commissioning_body->code))) {
 			$cbs->commissioning_body_id = $commissioning_body->id;
 			if (!$cbs->save()) {
 				throw new Exception("Unable to save CommissioningBodyService: ".print_r($cbs->getErrors(),true));
@@ -287,7 +281,6 @@ class PasService
 		}
 
 		return $commissioning_body;
-
 	}
 
 	/**
@@ -305,6 +298,9 @@ class PasService
 				}
 				if ($pas_practice = $assignment->external) {
 					Yii::log('Found Pracice in PAS', 'trace');
+
+					$old_practice = clone $practice;
+
 					$practice->code = $pas_practice->OBJ_LOC;
 					if (trim($pas_practice->TEL_1)) {
 						$practice->phone = trim($pas_practice->TEL_1);
@@ -312,16 +308,19 @@ class PasService
 						$practice->phone = 'Unknown';
 					}
 
-					// Contact
-					if (!$contact = $practice->contact) {
-						$contact = new Contact;
+					if ($practice != $old_practice && !$practice->save()) {
+						throw new CException('Cannot save practice: '.print_r($practice->getErrors(),true));
 					}
+
+					$contact = $practice->contact;
+
+					$old_contact = clone $contact;
+
 					$contact->primary_phone = $practice->phone;
 
-					if (!$contact->save()) {
+					if ($contact != $old_contact && !$contact->save()) {
 						throw new Exception("Unable to save practice contact: ".print_r($contact->getErrors(),true));
 					}
-					$practice->contact_id = $contact->id;
 
 					// Address
 					$address1 = array();
@@ -385,11 +384,6 @@ class PasService
 						$other_ccgs[] = $other_ccg->id;
 					}
 					CommissioningBodyPracticeAssignment::model()->deleteByPk($other_ccgs);
-
-					// Save
-					if (!$practice->save()) {
-						throw new CException('Cannot save practice: '.print_r($practice->getErrors(),true));
-					}
 
 					if ($address) {
 						if (!$address->save()) {
@@ -496,6 +490,9 @@ class PasService
 
 			if (($pas_patient = $assignment->getExternal($with))) {
 				Yii::log("Found patient in PAS", 'trace');
+
+				$old_patient = clone $patient;
+
 				$patient_attrs = array(
 						'gender' => $pas_patient->SEX,
 						'dob' => $pas_patient->DATE_OF_BIRTH,
@@ -520,11 +517,13 @@ class PasService
 				$patient->attributes = $patient_attrs;
 
 				// Save
-				if (!$patient->save()) {
+				if ($patient != $old_patient && !$patient->save()) {
 					throw new CException('Cannot save patient: '.print_r($patient->getErrors(),true));
 				}
 
 				$contact = $patient->contact;
+				$old_contact = clone $contact;
+
 				$contact->title = PasTransformer::fixCase($pas_patient->name->TITLE);
 				$contact->first_name = ($pas_patient->name->NAME1) ? PasTransformer::fixCase($pas_patient->name->NAME1) : '(UNKNOWN)';
 				$contact->last_name = PasTransformer::fixCase($pas_patient->name->SURNAME_ID);
@@ -532,7 +531,7 @@ class PasService
 					// Get primary phone from patient's main address
 					$contact->primary_phone = $primary_address->TEL_NO;
 				}
-				if (!$contact->save()) {
+				if ($contact != $old_contact && !$contact->save()) {
 					throw new CException('Cannot save patient contact: '.print_r($contact->getErrors(),true));
 				}
 
@@ -563,8 +562,10 @@ class PasService
 							$address->contact_id = $contact->id;
 						}
 
+						$old_address = clone $address;
+
 						PasTransformer::parseAddress($pas_address, $address);
-						if (!$address->save()) {
+						if ($address != $old_address && !$address->save()) {
 							throw new CException('Cannot save patient address: '.print_r($address->getErrors(),true));
 						}
 						$matched_address_ids[] = $address->id;
@@ -637,6 +638,8 @@ class PasService
 				if ($pas_patient_gp) {
 					Yii::log("Patient has GP record: PAS_PatientGps->GP_ID: {$pas_patient_gp->GP_ID}", 'trace');
 
+					$old_patient = clone $patient;
+
 					// Check if GP is not on our block list
 					if ($this->isBadGp($pas_patient_gp->GP_ID)) {
 						Yii::log("GP on blocklist, ignoring", 'trace');
@@ -689,7 +692,7 @@ class PasService
 						Yii::log("Patient has no Practice|id: {$patient->id}, hos_num: {$patient->hos_num}", 'warning', 'application.action');
 					}
 
-					if (!$patient->save()) {
+					if ($patient != $old_patient && !$patient->save()) {
 						throw new CException('Cannot save patient: '.print_r($patient->getErrors(),true));
 					}
 				} else {
@@ -736,6 +739,8 @@ class PasService
 				throw new Exception("Unable to save referral_type: ".print_r($referral_type->getErrors(),true));
 			}
 		}
+
+		$old_referral = clone $referral;
 
 		$referral->refno = $pas_referral->REFNO;
 		$referral->referral_type_id = $referral_type->id;
@@ -790,7 +795,7 @@ class PasService
 			*/
 		}
 
-		if (!$referral->save()) {
+		if ($referral != $old_referral && !$referral->save()) {
 			throw new Exception("Unable to save referral: ".print_r($referral->getErrors(),true));
 		}
 
@@ -824,13 +829,15 @@ class PasService
 	 */
 	private function updateRTTFromPas($rtt, $pas_rtt, $rtt_assignment)
 	{
+		$old_rtt = clone $rrt;
+
 		$rtt->clock_start = $pas_rtt->CLST_DT;
 		$rtt->clock_end = $pas_rtt->CLED_DT;
 		$rtt->breach = $pas_rtt->BR_DT;
 		$rtt->active = $pas_rtt->isActive();
 		$rtt->comments = $pas_rtt->CMNTS;
 
-		if (!$rtt->save()) {
+		if ($rtt != $old_rtt && !$rtt->save()) {
 			throw new Exception("Unable to save rtt: ".print_r($rtt->getErrors(),true));
 		}
 
