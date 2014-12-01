@@ -19,6 +19,8 @@
 
 class PasService
 {
+	static protected $available;
+
 	/**
 	 * @return PasService
 	 */
@@ -28,7 +30,6 @@ class PasService
 	}
 
 	protected $assign;
-	protected $available;
 
 	/**
 	 * @param PasAssignment $assign PasAssignment static model
@@ -43,10 +44,10 @@ class PasService
 	 */
 	public function isAvailable()
 	{
-		if (!isset($this->available)) {
+		if (!isset(self::$available)) {
 			$this->setAvailable(isset(Yii::app()->params['mehpas_enabled']) && Yii::app()->params['mehpas_enabled'] === true);
 		}
-		return $this->available;
+		return self::$available;
 	}
 
 	/**
@@ -54,7 +55,7 @@ class PasService
 	 */
 	public function setAvailable($available = true)
 	{
-		$this->available = $available;
+		self::$available = $available;
 
 		if ($available == false) {
 			Yii::log('PAS is not available, displayed data may be out of date', 'trace');
